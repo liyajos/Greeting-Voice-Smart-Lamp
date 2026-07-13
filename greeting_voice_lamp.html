@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Greeting Voice Smart Lamp — Build Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14171a;
+    --panel: #1c2023;
+    --panel-2: #22272a;
+    --border: #33393d;
+    --border-soft: #2a2f33;
+    --text: #eae7e0;
+    --muted: #8b939a;
+    --amber: #ffb454;
+    --blue: #5db8ff;
+    --olive: #d8c94a;
+    --green: #5fe3a0;
+    --red: #ff6f6f;
+    --orange: #ff9b4d;
+    --purple: #b58cff;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--amber); color:#14171a; }
+  h1,h2,h3,.mono{ font-family:'Space Mono', monospace; }
+  a{ color:var(--amber); }
+
+  .eyebrow{
+    font-family:'Space Mono',monospace;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    font-size:.72rem;
+    color:var(--muted);
+  }
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 28px; }
+
+  /* ---------------- HERO ---------------- */
+  .hero{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    position:relative;
+    padding:80px 24px 60px;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255,180,84,.06), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0px, rgba(255,255,255,.012) 1px, transparent 1px, transparent 26px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.012) 0px, rgba(255,255,255,.012) 1px, transparent 1px, transparent 26px),
+      var(--bg);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .hero .eyebrow{ margin-bottom:18px; }
+  .hero h1{
+    font-size:clamp(2.1rem, 5.2vw, 3.6rem);
+    margin:0 0 16px;
+    font-weight:700;
+    letter-spacing:-.01em;
+  }
+  .hero p.sub{
+    max-width:560px;
+    color:var(--muted);
+    font-size:1.05rem;
+    margin:0 auto 56px;
+  }
+
+  /* the LED signature element */
+  .rig{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:22px;
+  }
+  .bulb-housing{
+    width:150px; height:150px;
+    border-radius:50%;
+    background: linear-gradient(155deg, #262b2e, #17191b 65%);
+    border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: inset 0 4px 14px rgba(0,0,0,.55), 0 10px 30px rgba(0,0,0,.4);
+    position:relative;
+  }
+  .bulb-housing::before{
+    content:"";
+    position:absolute; inset:10px;
+    border-radius:50%;
+    border:1px dashed rgba(255,255,255,.06);
+  }
+  #led-core{
+    width:74px; height:74px;
+    border-radius:50%;
+    background:#0c0d0e;
+    transition: background-color .35s ease, box-shadow .5s ease;
+    box-shadow: 0 0 0px rgba(0,0,0,0);
+  }
+  .state-label{
+    font-family:'Space Mono',monospace;
+    font-size:.85rem;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    min-height:1.4em;
+  }
+  .state-caption{
+    font-size:.82rem;
+    color:var(--muted);
+    max-width:340px;
+    min-height:2.6em;
+  }
+  .scroll-cta{
+    margin-top:60px;
+    font-family:'Space Mono',monospace;
+    font-size:.75rem;
+    letter-spacing:.1em;
+    color:var(--muted);
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .scroll-cta .arrow{ animation: bob 1.8s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(6px);} }
+
+  /* ---------------- SECTIONS ---------------- */
+  section{ padding:88px 0; border-bottom:1px solid var(--border-soft); }
+  section.alt{ background:var(--panel); }
+  .section-head{ margin-bottom:44px; max-width:640px; }
+  .section-head .eyebrow{ margin-bottom:10px; }
+  .section-head h2{ font-size:clamp(1.5rem,3vw,2.1rem); margin:0 0 12px; font-weight:700; }
+  .section-head p{ color:var(--muted); margin:0; }
+
+  /* how it works cards */
+  .grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  .card{
+    background:var(--panel-2);
+    border:1px solid var(--border-soft);
+    border-radius:10px;
+    padding:26px 24px;
+  }
+  .card .tag{ font-family:'Space Mono',monospace; font-size:.72rem; color:var(--amber); letter-spacing:.1em; text-transform:uppercase; }
+  .card h3{ font-size:1.05rem; margin:10px 0 8px; }
+  .card p{ color:var(--muted); font-size:.92rem; margin:0; }
+
+  /* wiring table */
+  table{ width:100%; border-collapse:collapse; font-size:.92rem; }
+  th,td{ text-align:left; padding:12px 14px; border-bottom:1px solid var(--border-soft); }
+  th{ font-family:'Space Mono',monospace; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:400; }
+  td.pin{ font-family:'Space Mono',monospace; color:var(--amber); }
+  .swatch{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle; }
+
+  .two-col{ display:grid; grid-template-columns:1.1fr .9fr; gap:44px; align-items:start; }
+  @media (max-width:840px){ .two-col{ grid-template-columns:1fr; } .grid3{ grid-template-columns:1fr; } }
+
+  .bom{ list-style:none; margin:0; padding:0; font-size:.92rem; }
+  .bom li{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border-soft); color:var(--muted); }
+  .bom li b{ color:var(--text); font-weight:500; }
+
+  /* timeline */
+  .timeline{ position:relative; padding-left:46px; }
+  .timeline::before{
+    content:""; position:absolute; left:15px; top:6px; bottom:6px; width:1px;
+    background:linear-gradient(var(--border), var(--border) 70%, transparent);
+  }
+  .tl-item{ position:relative; margin-bottom:40px; }
+  .tl-item:last-child{ margin-bottom:0; }
+  .tl-num{
+    position:absolute; left:-46px; top:0;
+    width:31px; height:31px; border-radius:50%;
+    background:var(--panel-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono',monospace; font-size:.78rem; color:var(--amber);
+  }
+  .tl-item h3{ margin:2px 0 6px; font-size:1.05rem; }
+  .tl-item .file{ font-family:'Space Mono',monospace; font-size:.75rem; color:var(--muted); background:var(--panel-2); border:1px solid var(--border-soft); padding:2px 8px; border-radius:5px; margin-left:10px; }
+  .tl-item p{ color:var(--muted); margin:0; font-size:.92rem; max-width:640px; }
+
+  /* command tables */
+  .cmd-grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  @media (max-width:840px){ .cmd-grid{ grid-template-columns:1fr; } }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .chip{
+    font-family:'Space Mono',monospace; font-size:.78rem;
+    border:1px solid var(--border); border-radius:20px;
+    padding:6px 14px; display:flex; align-items:center; gap:8px;
+    color:var(--text);
+    background:var(--panel-2);
+  }
+
+  /* code / setup */
+  pre{
+    background:#101315; border:1px solid var(--border-soft); border-radius:8px;
+    padding:16px 18px; overflow-x:auto; font-family:'Space Mono',monospace; font-size:.82rem;
+    color:#d7dadc; margin:0;
+  }
+  .install-steps{ display:flex; flex-direction:column; gap:14px; margin-top:20px; }
+  .install-steps .step-label{ font-size:.78rem; color:var(--muted); margin-bottom:6px; font-family:'Space Mono',monospace; }
+
+  /* source tabs */
+  .tabs{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .tab-btn{
+    font-family:'Space Mono',monospace; font-size:.78rem;
+    background:var(--panel-2); border:1px solid var(--border-soft); color:var(--muted);
+    padding:8px 14px; border-radius:7px; cursor:pointer;
+  }
+  .tab-btn.active{ color:var(--bg); background:var(--amber); border-color:var(--amber); font-weight:700; }
+  .code-panel{ display:none; }
+  .code-panel.active{ display:block; }
+  .code-panel pre{ max-height:520px; overflow-y:auto; }
+
+  footer{ padding:40px 0 60px; text-align:center; }
+  footer p{ color:var(--muted); font-size:.82rem; font-family:'Space Mono',monospace; }
+
+  @media (prefers-reduced-motion: reduce){
+    .scroll-cta .arrow{ animation:none; }
+    #led-core{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="eyebrow">Raspberry Pi &middot; gpiozero &middot; SpeechRecognition</div>
+  <h1>Greeting Voice Smart Lamp</h1>
+  <p class="sub">Hold a button, say something, and an RGB LED answers &mdash; in color and in kind. A five-step build from "can it hear me" to "it says good morning back."</p>
+
+  <div class="rig">
+    <div class="bulb-housing"><div id="led-core"></div></div>
+    <div class="state-label" id="state-label">IDLE</div>
+    <div class="state-caption" id="state-caption">Off, waiting for the button to be pressed.</div>
+  </div>
+
+  <div class="scroll-cta">
+    <span>How it's built</span>
+    <span class="arrow">&darr;</span>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Overview</div>
+      <h2>Three moves, every time</h2>
+      <p>Every interaction runs the same loop: listen while the button is held, send the clip to Google's speech API, then react &mdash; either with a color, or with a greeting and a little light show.</p>
+    </div>
+    <div class="grid3">
+      <div class="card">
+        <div class="tag">01 &middot; Listen</div>
+        <h3>Push-to-talk capture</h3>
+        <p>Holding the button on GPIO 21 opens the mic. <code>recognizer.listen()</code> records until release or a 5&nbsp;second timeout, with ambient noise calibrated once at startup.</p>
+      </div>
+      <div class="card">
+        <div class="tag">02 &middot; Understand</div>
+        <h3>Keyword parsing</h3>
+        <p>The transcript is lower-cased and scanned for keywords &mdash; a color name, "on"/"off", "rainbow", or a greeting phrase like "good morning." First match wins.</p>
+      </div>
+      <div class="card">
+        <div class="tag">03 &middot; Glow</div>
+        <h3>LED as feedback</h3>
+        <p>The RGB LED on pins 17/27/22 doubles as a status light: dim blue while listening, dim yellow while processing, then a flash of green, red, or orange for the result.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Hardware</div>
+      <h2>Wiring</h2>
+      <p>One common-cathode RGB LED, one momentary push button, one microphone. Nothing exotic.</p>
+    </div>
+    <div class="two-col">
+      <div>
+        <table>
+          <thead><tr><th>GPIO</th><th>Component</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td class="pin">GPIO 17</td><td><span class="swatch" style="background:var(--red)"></span>LED &mdash; Red leg</td><td>via 220&Omega; resistor</td></tr>
+            <tr><td class="pin">GPIO 27</td><td><span class="swatch" style="background:var(--green)"></span>LED &mdash; Green leg</td><td>via 220&Omega; resistor</td></tr>
+            <tr><td class="pin">GPIO 22</td><td><span class="swatch" style="background:var(--blue)"></span>LED &mdash; Blue leg</td><td>via 220&Omega; resistor</td></tr>
+            <tr><td class="pin">GPIO 21</td><td>Push button</td><td>other leg to GND, internal pull-up</td></tr>
+            <tr><td class="pin">USB / 3.5mm</td><td>Microphone</td><td>ambient noise calibrated on boot</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:12px;">Bill of materials</div>
+        <ul class="bom">
+          <li><span>RGB LED</span><b>common-cathode, x1</b></li>
+          <li><span>Resistors</span><b>220&Omega;, x3</b></li>
+          <li><span>Push button</span><b>momentary, x1</b></li>
+          <li><span>Microphone</span><b>USB or 3.5mm</b></li>
+          <li><span>Raspberry Pi</span><b>any GPIO + audio model</b></li>
+          <li><span>Breadboard + jumpers</span><b>as needed</b></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Build log</div>
+      <h2>Five steps, in order</h2>
+      <p>Each file in the repo is a working checkpoint &mdash; the project actually ran at every stage below.</p>
+    </div>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-num">1</div>
+        <h3>Just listen<span class="file">step2.py</span></h3>
+        <p>No LED, no button yet. Calibrate for ambient noise, record 5 seconds, send it to <code>recognize_google()</code>, print whatever came back &mdash; or the specific reason it failed.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-num">2</div>
+        <h3>Voice becomes color<span class="file">step3.py</span></h3>
+        <p>The RGB LED joins in. A dictionary of 18 named colors plus "on," "off," and "rainbow" get matched against the transcript and pushed straight to <code>led.color</code>, in a free-running loop.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-num">3</div>
+        <h3>Push-to-talk<span class="file">step4.py</span></h3>
+        <p>The always-on mic gets replaced with a button. <code>wait_for_press()</code> gates listening, and the LED dims blue while held so you know it's actually recording.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-num">4</div>
+        <h3>A light for every outcome<span class="file">step5.py</span></h3>
+        <p>Distinct states for idle, listening, processing, success, misheard, and unmatched, plus a <code>last_color</code> memory so a flash of feedback doesn't erase the color you just asked for.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-num">5</div>
+        <h3>It talks back<span class="file">extension_greeting.py</span></h3>
+        <p>Greeting phrases &mdash; "hello," "good morning," "thank you" &mdash; get their own printed replies and short signature blinks, on top of the full color and state-feedback system from step&nbsp;5.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Reference</div>
+      <h2>What you can say</h2>
+      <p>The final build (<code>extension_greeting.py</code>) recognizes these phrases.</p>
+    </div>
+    <div class="cmd-grid">
+      <div>
+        <div class="eyebrow" style="margin-bottom:4px;">Greetings</div>
+        <div class="chip-row">
+          <span class="chip">hello / hi</span>
+          <span class="chip">good morning</span>
+          <span class="chip">good afternoon</span>
+          <span class="chip">good evening</span>
+          <span class="chip">good night</span>
+          <span class="chip">thank you</span>
+        </div>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:4px;">Colors &amp; controls</div>
+        <div class="chip-row">
+          <span class="chip"><span class="swatch" style="background:#ff5b5b"></span>red</span>
+          <span class="chip"><span class="swatch" style="background:#5fe36e"></span>green</span>
+          <span class="chip"><span class="swatch" style="background:#5da8ff"></span>blue</span>
+          <span class="chip"><span class="swatch" style="background:#ffe45b"></span>yellow</span>
+          <span class="chip"><span class="swatch" style="background:#b060ff"></span>purple</span>
+          <span class="chip"><span class="swatch" style="background:#ffffff"></span>white</span>
+          <span class="chip"><span class="swatch" style="background:#ff9b3d"></span>orange</span>
+          <span class="chip"><span class="swatch" style="background:#ff8fb0"></span>pink</span>
+          <span class="chip">rainbow / party</span>
+          <span class="chip">turn on / off</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Setup</div>
+      <h2>Getting it running</h2>
+      <p>System audio packages first, then the Python side.</p>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="install-steps">
+          <div>
+            <div class="step-label">1 &middot; System packages</div>
+            <pre>sudo apt update
+sudo apt install -y python3-pyaudio portaudio19-dev flac bluez pipewire pavucontrol</pre>
+          </div>
+          <div>
+            <div class="step-label">2 &middot; Python packages</div>
+            <pre>pip install -r requirements.txt</pre>
+          </div>
+          <div>
+            <div class="step-label">3 &middot; Run it</div>
+            <pre>python extension_greeting.py</pre>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="step-label">requirements.txt</div>
+        <pre>SpeechRecognition==3.14.3
+PyAudio==0.2.14
+gpiozero==2.0.1
+lgpio==0.2.2.0</pre>
+        <div class="step-label" style="margin-top:14px;">system_requirements.txt</div>
+        <pre>python3-pyaudio
+portaudio19-dev
+flac
+bluez
+pipewire
+pavucontrol</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" style="border-bottom:none;">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Source</div>
+      <h2>The code, checkpoint by checkpoint</h2>
+      <p>Every file above, in full.</p>
+    </div>
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-target="panel-step2">step2.py</button>
+      <button class="tab-btn" data-target="panel-step3">step3.py</button>
+      <button class="tab-btn" data-target="panel-step4">step4.py</button>
+      <button class="tab-btn" data-target="panel-step5">step5.py</button>
+      <button class="tab-btn" data-target="panel-ext">extension_greeting.py</button>
+    </div>
+    <div class="code-panel active" id="panel-step2"><pre>import speech_recognition as sr
+
+# Create a recognizer object.. this is what converts speech to text
+r = sr.Recognizer()
+
+# Create a microphone object.. this accesses your earbuds mic
+mic = sr.Microphone()
+
+# Open the microphone
+with mic as source:
+    # Listen to background noise for 1 second to understand silence level
+    r.adjust_for_ambient_noise(source, duration=1)
+    print(&quot;Listening... speak now.&quot;)
+    # Record what you say (wait max 5 seconds)
+    audio = r.listen(source, timeout=5, phrase_time_limit=5)
+
+# Try to convert the audio to text
+try:
+    text = r.recognize_google(audio)  # Sends audio to Google&#x27;s servers
+    print(f&quot;You said: {text}&quot;)
+except sr.UnknownValueError:
+    print(&quot;Could not understand audio&quot;)  # Couldn&#x27;t make out what you said
+except sr.RequestError as e:
+    print(f&quot;API error: {e}&quot;)  # Internet problem</pre></div>
+    <div class="code-panel" id="panel-step3"><pre>import speech_recognition as sr
+from gpiozero import RGBLED
+from time import sleep
+
+# Connect to the RGB LED on GPIO pins 17 (red), 27 (green), 22 (blue)
+led = RGBLED(red=17, green=27, blue=22)
+
+# Set up speech recognition
+r = sr.Recognizer()
+mic = sr.Microphone()
+
+# Dictionary of color names ? (Red, Green, Blue) values (0 to 1 scale)
+COLORS = {
+    &quot;red&quot;:    (1, 0, 0),
+    &quot;green&quot;:  (0, 1, 0),
+    &quot;blue&quot;:   (0, 0, 1),
+    &quot;yellow&quot;: (1, 1, 0),
+    &quot;purple&quot;: (0.5, 0, 1),
+    &quot;white&quot;:  (1, 1, 1),
+    &quot;orange&quot;: (1, 0.5, 0),
+    &quot;pink&quot;:   (1, 0.4, 0.6),
+    &quot;cyan&quot;:    (0, 1, 1),
+    &quot;magenta&quot;: (1, 0, 1),
+    &quot;lime&quot;:    (0.5, 1, 0),
+    &quot;teal&quot;:    (0, 0.5, 0.5),
+    &quot;gold&quot;:    (1, 0.84, 0),
+    &quot;lavender&quot;: (0.7, 0.5, 1),
+    &quot;mint&quot;:    (0.2, 1, 0.6),
+    &quot;coral&quot;:   (1, 0.4, 0.3),
+    &quot;maroon&quot;:  (0.5, 0, 0),
+    &quot;navy&quot;:    (0, 0, 0.5),
+}
+
+def parse(text):
+    &quot;&quot;&quot;Look at the text and decide what command was given&quot;&quot;&quot;
+    t = text.lower()  # Convert to lowercase so &quot;Red&quot; and &quot;red&quot; both work
+    
+    if &quot;off&quot; in t:
+        return (&quot;off&quot;, None)
+    if &quot;on&quot; in t:
+        return (&quot;on&quot;, (1, 0.7, 0.3))  # Warm white when turned on
+    for name, rgb in COLORS.items():
+        if name in t:
+            return (&quot;color&quot;, rgb)
+    if &quot;rainbow&quot; in t or &quot;party&quot; in t:
+        return (&quot;rainbow&quot;, None)
+    
+    return (None, None)  # No matching command found
+
+def execute(cmd, arg):
+    &quot;&quot;&quot;Run the command on the LED&quot;&quot;&quot;
+    if cmd == &quot;off&quot;:
+        led.off()
+    elif cmd == &quot;on&quot;:
+        led.color = arg
+    elif cmd == &quot;color&quot;:
+        led.color = arg
+    elif cmd == &quot;rainbow&quot;:
+        # Cycle through all colors with a short pause
+        for c in COLORS.values():
+            led.color = c
+            sleep(0.3)
+        led.off()
+    else:
+        print(&quot;(no matching command)&quot;)
+
+# Calibrate for background noise once at the start
+with mic as source:
+    r.adjust_for_ambient_noise(source, duration=0.5)
+
+print(&quot;Ready. Speak a command (e.g., &#x27;turn on&#x27;, &#x27;make it blue&#x27;, &#x27;rainbow&#x27;).&quot;)
+print(&quot;Press Ctrl+C to quit.&quot;)
+
+# Main loop..keeps listening forever until you press Ctrl+C
+# Main loop..keeps listening forever until you press Ctrl+C
+try:
+    while True:
+        with mic as source:
+            audio = r.listen(source, phrase_time_limit=2)
+
+        try:
+            text = r.recognize_google(audio)
+            print(f&quot;Heard: {text}&quot;)
+            cmd, arg = parse(text)
+            execute(cmd, arg)
+
+        except sr.UnknownValueError:
+            pass  # Ignore when it can&#x27;t understand, just try again
+
+        except sr.RequestError as e:
+            print(f&quot;API error: {e}&quot;)
+
+except KeyboardInterrupt:
+    print(&quot;\nProgram stopped by user.&quot;)
+
+finally:
+    led.off()
+    led.close()</pre></div>
+    <div class="code-panel" id="panel-step4"><pre>import speech_recognition as sr
+from gpiozero import RGBLED, Button
+from time import sleep
+
+led = RGBLED(red=17, green=27, blue=22)
+button = Button(21)  # Button on GPIO 21, internal pull-up enabled automatically
+
+r = sr.Recognizer()
+mic = sr.Microphone()
+
+# Same colors as before
+COLORS = {
+    &quot;red&quot;:    (1, 0, 0),
+    &quot;green&quot;:  (0, 1, 0),
+    &quot;blue&quot;:   (0, 0, 1),
+    &quot;yellow&quot;: (1, 1, 0),
+    &quot;purple&quot;: (0.5, 0, 1),
+    &quot;white&quot;:  (1, 1, 1),
+    &quot;orange&quot;: (1, 0.5, 0),
+    &quot;pink&quot;:   (1, 0.4, 0.6),
+    &quot;cyan&quot;:    (0, 1, 1),
+    &quot;magenta&quot;: (1, 0, 1),
+    &quot;lime&quot;:    (0.5, 1, 0),
+    &quot;teal&quot;:    (0, 0.5, 0.5),
+    &quot;gold&quot;:    (1, 0.84, 0),
+    &quot;lavender&quot;: (0.7, 0.5, 1),
+    &quot;mint&quot;:    (0.2, 1, 0.6),
+    &quot;coral&quot;:   (1, 0.4, 0.3),
+    &quot;maroon&quot;:  (0.5, 0, 0),
+    &quot;navy&quot;:    (0, 0, 0.5),
+
+}
+
+def parse(text):
+    t = text.lower()
+    if &quot;off&quot; in t: return (&quot;off&quot;, None)
+    if &quot;on&quot; in t: return (&quot;on&quot;, (1, 0.7, 0.3))
+    for name, rgb in COLORS.items():
+        if name in t: return (&quot;color&quot;, rgb)
+    if &quot;rainbow&quot; in t or &quot;party&quot; in t: return (&quot;rainbow&quot;, None)
+    return (None, None)
+
+def execute(cmd, arg):
+    if cmd == &quot;off&quot;: led.off()
+    elif cmd == &quot;on&quot;: led.color = arg
+    elif cmd == &quot;color&quot;: led.color = arg
+    elif cmd == &quot;rainbow&quot;:
+        for c in COLORS.values():
+            led.color = c; sleep(0.3)
+        led.off()
+    else: print(&quot;(no matching command)&quot;)
+
+# Visual feedback when button is pressed/released
+def on_press():
+    led.color = (0, 0, 0.3)  # Dim blue = &quot;I&#x27;m listening&quot;
+    print(&quot;Listening...&quot;)
+
+def on_release():
+    led.off()  # Turn off while processing
+
+button.when_pressed = on_press
+button.when_released = on_release
+
+# Calibrate background noise
+with mic as source:
+    r.adjust_for_ambient_noise(source, duration=1)
+
+print(&quot;Press and hold the button, speak, then release.&quot;)
+print(&quot;Press Ctrl+C to quit.&quot;)
+
+try:
+    while True:
+        button.wait_for_press()  # Do nothing until button is pressed
+
+        with mic as source:
+            try:
+                audio = r.listen(source, timeout=2, phrase_time_limit=4)
+            except sr.WaitTimeoutError:
+                continue  # No speech heard, go back to waiting
+
+        try:
+            text = r.recognize_google(audio)
+            print(f&quot;Heard: {text}&quot;)
+            cmd, arg = parse(text)
+            execute(cmd, arg)
+
+        except sr.UnknownValueError:
+            # Flash red = didn&#x27;t understand
+            led.color = (0.3, 0, 0)
+            sleep(0.3)
+            led.off()
+
+        except sr.RequestError as e:
+            print(f&quot;API error: {e}&quot;)
+
+except KeyboardInterrupt:
+    print(&quot;\nProgram stopped by user.&quot;)
+
+finally:
+    led.off()
+    led.close()</pre></div>
+    <div class="code-panel" id="panel-step5"><pre>import speech_recognition as sr
+from gpiozero import RGBLED, Button
+from time import sleep
+import threading
+
+led = RGBLED(red=17, green=27, blue=22)
+button = Button(21)
+r = sr.Recognizer()
+mic = sr.Microphone()
+
+COLORS = {
+    &quot;red&quot;:    (1, 0, 0),
+    &quot;green&quot;:  (0, 1, 0),
+    &quot;blue&quot;:   (0, 0, 1),
+    &quot;yellow&quot;: (1, 1, 0),
+    &quot;purple&quot;: (0.5, 0, 1),
+    &quot;white&quot;:  (1, 1, 1),
+    &quot;orange&quot;: (1, 0.5, 0),
+    &quot;pink&quot;:   (1, 0.4, 0.6),
+    &quot;cyan&quot;:    (0, 1, 1),
+    &quot;magenta&quot;: (1, 0, 1),
+    &quot;lime&quot;:    (0.5, 1, 0),
+    &quot;teal&quot;:    (0, 0.5, 0.5),
+    &quot;gold&quot;:    (1, 0.84, 0),
+    &quot;lavender&quot;: (0.7, 0.5, 1),
+    &quot;mint&quot;:    (0.2, 1, 0.6),
+    &quot;coral&quot;:   (1, 0.4, 0.3),
+    &quot;maroon&quot;:  (0.5, 0, 0),
+    &quot;navy&quot;:    (0, 0, 0.5),
+
+}
+
+# This stores the last commanded color (so we can restore it after feedback)
+last_color = None
+
+def parse(text):
+    t = text.lower()
+    if &quot;off&quot; in t: return (&quot;off&quot;, None)
+    if &quot;on&quot; in t: return (&quot;on&quot;, (1, 0.7, 0.3))
+    for name, rgb in COLORS.items():
+        if name in t: return (&quot;color&quot;, rgb)
+    if &quot;rainbow&quot; in t or &quot;party&quot; in t: return (&quot;rainbow&quot;, None)
+    return (None, None)
+
+def execute(cmd, arg):
+    global last_color
+    if cmd == &quot;off&quot;:
+        last_color = None
+        led.off()
+    elif cmd in (&quot;on&quot;, &quot;color&quot;):
+        last_color = arg
+        led.color = arg
+    elif cmd == &quot;rainbow&quot;:
+        for c in COLORS.values():
+            led.color = c; sleep(0.3)
+        led.off()
+        last_color = None
+    else:
+        # Orange flash = understood but no matching command
+        led.color = (1, 0.5, 0); sleep(0.3)
+        # Restore previous color
+        if last_color: led.color = last_color
+        else: led.off()
+
+def flash_green():
+    &quot;&quot;&quot;Brief green flash = success&quot;&quot;&quot;
+    led.color = (0, 1, 0)
+    sleep(0.3)
+
+def flash_red():
+    &quot;&quot;&quot;Brief red flash = didn&#x27;t understand&quot;&quot;&quot;
+    led.color = (0.3, 0, 0)
+    sleep(0.3)
+    led.off()
+
+def pulse_yellow():
+    &quot;&quot;&quot;Dim yellow = processing&quot;&quot;&quot;
+    led.color = (0.3, 0.3, 0)
+
+# Calibrate once
+with mic as source:
+    r.adjust_for_ambient_noise(source, duration=1)
+
+print(&quot;=== Voice Smart Lamp Ready ===&quot;)
+print(&quot;LED States:&quot;)
+print(&quot;  OFF      = idle, waiting for button&quot;)
+print(&quot;  DIM BLUE = listening to your voice&quot;)
+print(&quot;  DIM YELLOW = processing / sending to Google&quot;)
+print(&quot;  GREEN FLASH = command understood!&quot;)
+print(&quot;  RED FLASH = couldn&#x27;t understand&quot;)
+print(&quot;  ORANGE FLASH = no matching command&quot;)
+print(&quot;&quot;)
+print(&quot;Press and hold the button, speak, then release.&quot;)
+print(&quot;Press Ctrl+C to quit.&quot;)
+
+try:
+    while True:
+        # State: IDLE   LED is off, waiting for button
+        if last_color:
+            led.color = last_color
+        else:
+            led.off()
+
+        button.wait_for_press()
+
+        # State: LISTENING   dim blue
+        led.color = (0, 0, 0.3)
+        print(&quot;Listening...&quot;)
+
+        with mic as source:
+            try:
+                audio = r.listen(source, timeout=3, phrase_time_limit=5)
+            except sr.WaitTimeoutError:
+                print(&quot;No speech detected.&quot;)
+                led.off()
+                continue
+
+        # State: PROCESSING   dim yellow
+        pulse_yellow()
+        print(&quot;Processing...&quot;)
+
+        try:
+            text = r.recognize_google(audio)
+            print(f&quot;Heard: &#x27;{text}&#x27;&quot;)
+
+            cmd, arg = parse(text)
+
+            if cmd is None:
+                # Orange flash = recognized speech but no command matched
+                led.color = (1, 0.5, 0)
+                sleep(0.3)
+                print(&quot;(No matching command)&quot;)
+                led.off()
+            else:
+                # Green flash = success
+                flash_green()
+                execute(cmd, arg)
+
+                print(&quot;Command =&quot;, cmd)
+                print(&quot;Argument =&quot;, arg)
+                print(&quot;LED color =&quot;, led.color)
+
+                print(f&quot;Executed: {cmd}&quot;)
+
+        except sr.UnknownValueError:
+            # Red flash = couldn&#x27;t understand audio
+            flash_red()
+            print(&quot;Could not understand.&quot;)
+
+        except sr.RequestError as e:
+            # Network/API error
+            flash_red()
+            print(f&quot;API error: {e}&quot;)
+
+        sleep(2)
+
+        # Wait for button to be released before next cycle
+        button.wait_for_release()
+
+except KeyboardInterrupt:
+    print(&quot;\nProgram stopped by user.&quot;)
+
+finally:
+    led.off()
+    led.close()</pre></div>
+    <div class="code-panel" id="panel-ext"><pre>import speech_recognition as sr
+from gpiozero import RGBLED, Button
+from time import sleep
+
+# -------------------------------
+# Hardware Setup
+# -------------------------------
+led = RGBLED(red=17, green=27, blue=22)
+button = Button(21)
+
+r = sr.Recognizer()
+mic = sr.Microphone()
+
+# -------------------------------
+# Available LED Colors
+# -------------------------------
+COLORS = {
+    &quot;red&quot;: (1, 0, 0),
+    &quot;green&quot;: (0, 1, 0),
+    &quot;blue&quot;: (0, 0, 1),
+    &quot;yellow&quot;: (1, 1, 0),
+    &quot;purple&quot;: (0.5, 0, 1),
+    &quot;white&quot;: (1, 1, 1),
+    &quot;orange&quot;: (1, 0.5, 0),
+    &quot;pink&quot;: (1, 0.4, 0.6),
+}
+
+last_color = None
+
+# -------------------------------
+# Parse Voice Commands
+# -------------------------------
+def parse(text):
+    t = text.lower()
+
+    if &quot;off&quot; in t:
+        return (&quot;off&quot;, None)
+
+    if &quot;on&quot; in t:
+        return (&quot;on&quot;, (1, 0.7, 0.3))
+
+    if &quot;hello&quot; in t or &quot;hi&quot; in t:
+        return (&quot;hello&quot;, None)
+
+    if &quot;good morning&quot; in t:
+        return (&quot;morning&quot;, None)
+
+    if &quot;good afternoon&quot; in t:
+        return (&quot;afternoon&quot;, None)
+
+    if &quot;good evening&quot; in t:
+        return (&quot;evening&quot;, None)
+
+    if &quot;good night&quot; in t:
+        return (&quot;night&quot;, None)
+
+    if &quot;thank you&quot; in t:
+        return (&quot;thanks&quot;, None)
+
+    for name, rgb in COLORS.items():
+        if name in t:
+            return (&quot;color&quot;, rgb)
+
+    if &quot;rainbow&quot; in t or &quot;party&quot; in t:
+        return (&quot;rainbow&quot;, None)
+
+    return (None, None)
+
+
+# -------------------------------
+# Execute Commands
+# -------------------------------
+def execute(cmd, arg):
+    global last_color
+
+    if cmd == &quot;off&quot;:
+        last_color = None
+        led.off()
+
+    elif cmd in (&quot;on&quot;, &quot;color&quot;):
+        last_color = arg
+        led.color = arg
+
+    elif cmd == &quot;rainbow&quot;:
+        for c in COLORS.values():
+            led.color = c
+            sleep(0.3)
+        led.off()
+
+    elif cmd == &quot;hello&quot;:
+        print(&quot;Hello! Nice to meet you!&quot;)
+        for _ in range(2):
+            led.color = (0, 1, 0)
+            sleep(0.3)
+            led.off()
+            sleep(0.3)
+
+    elif cmd == &quot;morning&quot;:
+        print(&quot;Good Morning!&quot;)
+        led.color = (1, 1, 0)
+        sleep(2)
+        led.off()
+
+    elif cmd == &quot;afternoon&quot;:
+        print(&quot;Good Afternoon!&quot;)
+        led.color = (1, 0.5, 0)
+        sleep(2)
+        led.off()
+
+    elif cmd == &quot;evening&quot;:
+        print(&quot;Good Evening!&quot;)
+        led.color = (1, 0, 1)
+        sleep(2)
+        led.off()
+
+    elif cmd == &quot;night&quot;:
+        print(&quot;Good Night!&quot;)
+        led.color = (0, 0, 1)
+        sleep(2)
+        led.off()
+
+    elif cmd == &quot;thanks&quot;:
+        print(&quot;You&#x27;re Welcome!&quot;)
+        for _ in range(3):
+            led.color = (0, 1, 0)
+            sleep(0.2)
+            led.off()
+            sleep(0.2)
+
+
+# -------------------------------
+# Microphone Calibration
+# -------------------------------
+with mic as source:
+    r.adjust_for_ambient_noise(source, duration=1)
+
+print(&quot;===================================&quot;)
+print(&quot; Greeting Voice Smart Lamp &quot;)
+print(&quot;===================================&quot;)
+print(&quot;Supported Greeting Commands:&quot;)
+print(&quot;  Hello&quot;)
+print(&quot;  Good Morning&quot;)
+print(&quot;  Good Afternoon&quot;)
+print(&quot;  Good Evening&quot;)
+print(&quot;  Good Night&quot;)
+print(&quot;  Thank You&quot;)
+print(&quot;&quot;)
+print(&quot;Color Commands:&quot;)
+print(&quot;  Red, Green, Blue, Yellow&quot;)
+print(&quot;  Purple, Pink, Orange, White&quot;)
+print(&quot;  Rainbow&quot;)
+print(&quot;  Turn On&quot;)
+print(&quot;  Turn Off&quot;)
+print(&quot;&quot;)
+print(&quot;Press and hold the button, speak, then release.&quot;)
+print(&quot;-----------------------------------&quot;)
+
+# -------------------------------
+# Main Loop
+# -------------------------------
+try:
+    while True:
+
+        led.off()
+
+        button.wait_for_press()
+
+        # Listening
+        led.color = (0, 0, 0.3)
+        print(&quot;\nListening...&quot;)
+
+        with mic as source:
+            try:
+                audio = r.listen(source, timeout=5, phrase_time_limit=5)
+            except sr.WaitTimeoutError:
+                print(&quot;No speech detected.&quot;)
+                led.off()
+                button.wait_for_release()
+                continue
+
+        # Processing
+        led.color = (0.3, 0.3, 0)
+        print(&quot;Processing...&quot;)
+
+        try:
+            text = r.recognize_google(audio)
+            print(f&quot;Heard: {text}&quot;)
+
+            cmd, arg = parse(text)
+
+            if cmd is None:
+                print(&quot;No matching command.&quot;)
+                led.color = (1, 0.5, 0)
+                sleep(0.5)
+                led.off()
+
+            else:
+                execute(cmd, arg)
+                print(f&quot;Executed: {cmd}&quot;)
+
+        except sr.UnknownValueError:
+            print(&quot;Could not understand audio.&quot;)
+            led.color = (0.3, 0, 0)
+            sleep(0.5)
+            led.off()
+
+        except sr.RequestError as e:
+            print(&quot;API Error:&quot;, e)
+            led.color = (0.3, 0, 0)
+            sleep(0.5)
+            led.off()
+
+        button.wait_for_release()
+
+except KeyboardInterrupt:
+    print(&quot;\nProgram stopped by user.&quot;)
+
+finally:
+    led.off()
+    led.close()</pre></div>
+  </div>
+</section>
+
+<footer>
+  <p>GPIO 17 / 27 / 22 &middot; RGB LED &middot; Button on GPIO 21</p>
+</footer>
+
+<script>
+  // Tab switching
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab-btn');
+    if(!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.target).classList.add('active');
+  });
+
+  // Signature LED state machine, mirroring execute()/main loop colors in the code
+  const states = [
+    { name: 'IDLE',       rgb: [12, 13, 14],     glow: 'none',                         caption: 'Off, waiting for the button to be pressed.' },
+    { name: 'LISTENING',  rgb: [0, 0, 76],       glow: '0 0 26px 6px rgba(93,184,255,.55)', caption: 'Button held down. Dim blue while the mic records.' },
+    { name: 'PROCESSING', rgb: [76, 76, 0],      glow: '0 0 26px 6px rgba(216,201,74,.5)',  caption: 'Dim yellow while the clip is sent to Google\\'s speech API.' },
+    { name: 'SUCCESS',    rgb: [0, 255, 0],      glow: '0 0 34px 10px rgba(95,227,160,.65)', caption: 'Command understood &mdash; quick green flash before it executes.' },
+    { name: 'MISHEARD',   rgb: [76, 0, 0],       glow: '0 0 26px 6px rgba(255,111,111,.5)', caption: 'Audio came through, but recognize_google() couldn\\'t make it out.' },
+    { name: 'NO MATCH',   rgb: [255, 128, 0],    glow: '0 0 26px 6px rgba(255,155,77,.55)', caption: 'Understood, but no keyword matched &mdash; then it restores the last color.' },
+  ];
+  let i = 0;
+  const core = document.getElementById('led-core');
+  const label = document.getElementById('state-label');
+  const caption = document.getElementById('state-caption');
+
+  function applyState(s){
+    core.style.backgroundColor = `rgb(${s.rgb[0]}, ${s.rgb[1]}, ${s.rgb[2]})`;
+    core.style.boxShadow = s.glow;
+    label.textContent = s.name;
+    caption.innerHTML = s.caption;
+  }
+  applyState(states[0]);
+
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!prefersReduced){
+    setInterval(() => {
+      i = (i + 1) % states.length;
+      applyState(states[i]);
+    }, 2400);
+  }
+</script>
+
+</body>
+</html>
