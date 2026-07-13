@@ -1,0 +1,6 @@
+python3-pyaudio
+portaudio19-dev
+flac
+bluez
+pipewire
+pavucontrol
